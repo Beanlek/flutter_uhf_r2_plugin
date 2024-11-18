@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:uhf_r2_plugin/extension.dart';
 
 import 'uhf_r2_plugin_platform_interface.dart';
 
@@ -16,14 +17,30 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
   }
 
   @override
-  Future<bool?> connect() async {
-    final result = await methodChannel.invokeMethod('connect');
+  Future<bool?> testConnect() async {
+    final result = await methodChannel.invokeMethod('testConnect');
     return result;
   }
 
   @override
   Future<bool?> isConnected() async {
     final result = await methodChannel.invokeMethod('isConnected');
+    return result;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>?> startScan() async {
+    final String result = await methodChannel.invokeMethod('startScan');
+
+      debugPrint("result in package: $result");
+      debugPrint("result in package: ${result.cleanFromMyDevice().toString()}");
+
+    return result.cleanFromMyDevice();
+  }
+
+  @override
+  Future<bool?> stopScan() async {
+    final result = await methodChannel.invokeMethod('stopScan');
     return result;
   }
 }

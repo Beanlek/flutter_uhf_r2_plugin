@@ -1,45 +1,115 @@
 package com.amastsales.uhf_r2_plugin
 
+import android.app.Activity
 import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
+import android.util.Log
+import com.amastsales.uhf_r2_plugin.helper.UhfR2Listener
 import com.amastsales.uhf_r2_plugin.helper.Uhfr2Helper
+import com.amastsales.uhf_r2_plugin.helpers.MyDevice
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.PluginRegistry.RequestPermissionsResultListener
+
+import io.reactivex.subjects.PublishSubject;
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
+import java.util.ArrayList
 
 /** UhfR2Plugin */
-class UhfR2Plugin: FlutterPlugin, MethodCallHandler {
+class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPermissionsResultListener {
+
+  private var connectedStatus : PublishSubject<Boolean> = PublishSubject.create()
+  private var tagsStatus : PublishSubject<String> = PublishSubject.create()
+
   private lateinit var channel : MethodChannel
   private lateinit var context: Context
+  private var activity: Activity? = null
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "uhf_r2_plugin")
     context = flutterPluginBinding.applicationContext
     channel.setMethodCallHandler(this)
+
+//    Uhfr2Helper().getInstance().init()
+
+    val uhfR2Listener = object : UhfR2Listener {
+      override fun onRead(tagsJson: String) {
+        tagsJson?.let { tagsStatus.onNext(it) }
+      }
+
+      override fun onConnect(isConnected: Boolean, powerLevel: Int) {
+        connectedStatus.onNext(isConnected)
+      }
+    }
+
+    Uhfr2Helper().getInstance().setUhfListener(uhfR2Listener)
+  }
+
+  override fun onDetachedFromActivity() {
+    activity = null
+  }
+
+  override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+    activity = binding.activity
+  }
+
+  override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+    activity = binding.activity
+  }
+
+  override fun onDetachedFromActivityForConfigChanges() {
+    activity = null
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
-//    if (call.method == "getPlatformVersion") {
-//      result.success("Android ${android.os.Build.VERSION.RELEASE}")
-//    } else {
-//      handleMethods(call, result);
-//    }
-    handleMethods(call, result);
+    handleMethods(call, result)
   }
 
-  private fun handleMethods(call: MethodCall, result: Result) {
+  private fun handleMethods(call: MethodCall, result: Result) = GlobalScope.async {
     when (call.method) {
       CHANNEL_GetPlatformVersion -> result.success("Android " + Build.VERSION.RELEASE)
+
 //      CHANNEL_IsStarted -> result.success(UHFHelper.getInstance().isStarted())
 //      CHANNEL_StartSingle -> result.success(UHFHelper.getInstance().start(true))
 //      CHANNEL_StartContinuous -> result.success(UHFHelper.getInstance().start(false))
 //      CHANNEL_Stop -> result.success(UHFHelper.getInstance().stop())
+
 //      CHANNEL_ClearData -> {
-//        UHFHelper.getInstance().clearData()
+//        Uhfr2Helper().getInstance().clearData()
 //        result.success(true)
 //      }
+
+      CHANNEL_StartScan -> {
+        try {
+          val deviceList: List<MyDevice> = async()
+            { Uhfr2Helper().getInstance().startScan(context, activity!!) }.await().toList()
+
+          result.success(deviceList.toString())
+
+        } catch (error: Exception) {
+
+          result.error("error", "an error", error.toString())
+          Log.d("error", error.toString())
+
+        }
+      }
+
+      CHANNEL_StopScan -> {
+        Uhfr2Helper().getInstance().stopScan()
+        result.success(true)
+      }
+
+      CHANNEL_Connect -> {
+
+      }
+
 //
 //      CHANNEL_IsEmptyTags -> result.success(UHFHelper.getInstance().isEmptyTags())
 //      CHANNEL_Close -> {
@@ -56,8 +126,8 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler {
 //        result.success(UHFHelper.getInstance().setWorkArea(workArea))
 //      }
 
-      CHANNEL_Connect -> result.success(Uhfr2Helper().getInstance().connect(context))
 
+      CHANNEL_TestConnect -> result.success(Uhfr2Helper().getInstance().init(context))
       CHANNEL_IsConnected -> result.success(Uhfr2Helper().getInstance().isConnected())
 
       else -> result.notImplemented()
@@ -68,9 +138,25 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler {
     channel.setMethodCallHandler(null)
   }
 
+  override fun onRequestPermissionsResult(
+    requestCode: Int,
+    permissions: Array<out String?>,
+    grantResults: IntArray
+  ): Boolean {
+//    TODO("Not yet implemented")
+    return grantResults[0] == PackageManager.PERMISSION_GRANTED
+  }
+
   companion object {
     private const val CHANNEL_GetPlatformVersion : String = "getPlatformVersion"
+//    private const val CHANNEL_ClearData : String = "clearData"
+
+    private const val CHANNEL_StartScan : String = "startScan"
+    private const val CHANNEL_StopScan : String = "stopScan"
     private const val CHANNEL_Connect : String = "connect"
+
+    // debugging purposes
+    private const val CHANNEL_TestConnect : String = "testConnect"
     private const val CHANNEL_IsConnected : String = "isConnected"
   }
 }
