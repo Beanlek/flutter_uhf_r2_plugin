@@ -26,6 +26,9 @@ abstract class UhfR2PluginPlatform extends PlatformInterface {
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
+  Future<String?> getConnectionStatus() {
+    throw UnimplementedError('getConnectionStatus() has not been implemented.');
+  }
   Future<bool?> testConnect() {
     throw UnimplementedError('testConnect() has not been implemented.');
   }
@@ -37,5 +40,18 @@ abstract class UhfR2PluginPlatform extends PlatformInterface {
   }
   Future<bool?> stopScan() {
     throw UnimplementedError('stopScan() has not been implemented.');
+  }
+  Future<void> disconnect() {
+    throw UnimplementedError('disconnect() has not been implemented.');
+  }
+  Future<void> clear() {
+    throw UnimplementedError('clear() has not been implemented.');
+  }
+
+  Future<Map<String, dynamic>?> connect({required String deviceAddress}) {
+    throw UnimplementedError('connect() has not been implemented.');
+  }
+  Future<List<Map<String, dynamic>>?> tagSingle() {
+    throw UnimplementedError('tagSingle() has not been implemented.');
   }
 }

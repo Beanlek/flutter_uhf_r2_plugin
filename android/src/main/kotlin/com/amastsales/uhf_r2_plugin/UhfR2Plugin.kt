@@ -37,7 +37,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
     context = flutterPluginBinding.applicationContext
     channel.setMethodCallHandler(this)
 
-//    Uhfr2Helper().getInstance().init()
+//    Uhfr2Helper().getInstance().init(context)
 
     val uhfR2Listener = object : UhfR2Listener {
       override fun onRead(tagsJson: String) {
@@ -81,10 +81,17 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
 //      CHANNEL_StartContinuous -> result.success(UHFHelper.getInstance().start(false))
 //      CHANNEL_Stop -> result.success(UHFHelper.getInstance().stop())
 
-//      CHANNEL_ClearData -> {
-//        Uhfr2Helper().getInstance().clearData()
-//        result.success(true)
-//      }
+      CHANNEL_ClearData -> result.success(Uhfr2Helper().getInstance().clearData())
+
+      CHANNEL_TagSingle -> {
+        try {
+          val mutableTagList: MutableList<HashMap<String, String>> = Uhfr2Helper().getInstance().tagSingle()
+
+          result.success(mutableTagList.toList().toString())
+        } catch (error: Exception) {
+          result.error("CHANNEL_TagSingle :: ", "Error: ", error)
+        }
+      }
 
       CHANNEL_StartScan -> {
         try {
@@ -95,7 +102,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
 
         } catch (error: Exception) {
 
-          result.error("error", "an error", error.toString())
+          result.error("CHANNEL_StartScan :: ", "Error: ", error.toString())
           Log.d("error", error.toString())
 
         }
@@ -107,7 +114,31 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
       }
 
       CHANNEL_Connect -> {
+          try {
 
+            val response: Int = async()
+            {
+              Uhfr2Helper().getInstance()
+                .connect(context, call.argument<String>("deviceAddress").toString())
+            }.await()
+
+            result.success(response)
+
+          } catch (e: Exception) {
+
+            result.error("CHANNEL_Connect :: ", "Error: ", e.toString())
+            Log.d("Error:", e.toString())
+
+          }
+      }
+
+      CHANNEL_Disconnect -> {
+          try {
+              Uhfr2Helper().getInstance().disconnect()
+              result.success(true)
+          } catch (e: Exception) {
+              result.error("CHANNEL_Disconnect", "Error: ", e.toString())
+          }
       }
 
 //
@@ -129,6 +160,18 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
 
       CHANNEL_TestConnect -> result.success(Uhfr2Helper().getInstance().init(context))
       CHANNEL_IsConnected -> result.success(Uhfr2Helper().getInstance().isConnected())
+      CHANNEL_GetConnectionStatus -> {
+          try {
+            val res: String = Uhfr2Helper().getInstance().getConnectionStatus()
+
+            result.success(res)
+          } catch (e: Exception) {
+
+            result.error("CHANNEL_GetConnectionStatus :: ", "Error: ", e.toString())
+
+          }
+
+      }
 
       else -> result.notImplemented()
     }
@@ -149,14 +192,18 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
 
   companion object {
     private const val CHANNEL_GetPlatformVersion : String = "getPlatformVersion"
-//    private const val CHANNEL_ClearData : String = "clearData"
 
     private const val CHANNEL_StartScan : String = "startScan"
     private const val CHANNEL_StopScan : String = "stopScan"
     private const val CHANNEL_Connect : String = "connect"
+    private const val CHANNEL_Disconnect : String = "disconnect"
+
+    private const val CHANNEL_TagSingle : String = "tagSingle"
+    private const val CHANNEL_ClearData : String = "clearData"
 
     // debugging purposes
     private const val CHANNEL_TestConnect : String = "testConnect"
     private const val CHANNEL_IsConnected : String = "isConnected"
+    private const val CHANNEL_GetConnectionStatus : String = "getConnectionStatus"
   }
 }

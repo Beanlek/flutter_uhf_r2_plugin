@@ -17,6 +17,12 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
   }
 
   @override
+  Future<String?> getConnectionStatus() async {
+    final version = await methodChannel.invokeMethod<String>('getConnectionStatus');
+    return version;
+  }
+
+  @override
   Future<bool?> testConnect() async {
     final result = await methodChannel.invokeMethod('testConnect');
     return result;
@@ -42,5 +48,73 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
   Future<bool?> stopScan() async {
     final result = await methodChannel.invokeMethod('stopScan');
     return result;
+  }
+
+
+  @override
+  Future<void> disconnect() async {
+    await methodChannel.invokeMethod('disconnect');
+  }
+  @override
+  Future<void> clear() async {
+    await methodChannel.invokeMethod('clear');
+  }
+
+  
+
+  @override
+  Future<Map<String, dynamic>?> connect({required String deviceAddress}) async {
+    Map<String, dynamic> result = {};
+
+    final response = await methodChannel.invokeMethod('connect',
+      {
+        "deviceAddress" : deviceAddress
+      }
+    );
+
+    if (response is int) {
+      switch (response) {
+        case 1:
+          result = {
+            "connect": true,
+            "message": "Connected to $deviceAddress"
+          };
+          break;
+        case 2:
+          result = {
+            "connect": false,
+            "message": "Invalid device to connect."
+          };
+          break;
+        case 3:
+          result = {
+            "connect": false,
+            "message": "Disconnected from $deviceAddress"
+          };
+          break;
+        default:
+          result = {
+            "connect": false,
+            "message": "Internal Error"
+          };
+      }
+    } else {
+      result = {
+        "connect": false,
+        "message": "Error: ${response.toString()}"
+      };
+    }
+
+    return result;
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>?> tagSingle() async {
+    final String result = await methodChannel.invokeMethod('tagSingle');
+
+      debugPrint("result in package: $result");
+      debugPrint("result in package: ${result.cleanFromTags().toString()}");
+
+    return result.cleanFromTags();
   }
 }
