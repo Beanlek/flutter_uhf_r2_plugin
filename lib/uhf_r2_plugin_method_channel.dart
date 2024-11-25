@@ -56,8 +56,8 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
     await methodChannel.invokeMethod('disconnect');
   }
   @override
-  Future<void> clear() async {
-    await methodChannel.invokeMethod('clear');
+  Future<void> clearData() async {
+    await methodChannel.invokeMethod('clearData');
   }
 
   

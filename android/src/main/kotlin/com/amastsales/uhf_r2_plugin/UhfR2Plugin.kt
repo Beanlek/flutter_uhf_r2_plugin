@@ -203,7 +203,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
 
     // debugging purposes
     private const val CHANNEL_TestConnect : String = "testConnect"
-    private const val CHANNEL_IsConnected : String = "isConnected"
     private const val CHANNEL_GetConnectionStatus : String = "getConnectionStatus"
+    private const val CHANNEL_IsConnected : String = "isConnected"
   }
 }
