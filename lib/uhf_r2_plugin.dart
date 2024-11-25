@@ -23,8 +23,8 @@ class UhfR2Plugin {
   Future<void> disconnect() {
     return UhfR2PluginPlatform.instance.disconnect();
   }
-  Future<void> clear() {
-    return UhfR2PluginPlatform.instance.clear();
+  Future<void> clearData() {
+    return UhfR2PluginPlatform.instance.clearData();
   }
   
   Future<Map<String, dynamic>?> connect({required String deviceAddress}) {

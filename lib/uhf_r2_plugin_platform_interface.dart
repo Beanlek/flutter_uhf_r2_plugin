@@ -44,8 +44,8 @@ abstract class UhfR2PluginPlatform extends PlatformInterface {
   Future<void> disconnect() {
     throw UnimplementedError('disconnect() has not been implemented.');
   }
-  Future<void> clear() {
-    throw UnimplementedError('clear() has not been implemented.');
+  Future<void> clearData() {
+    throw UnimplementedError('clearData() has not been implemented.');
   }
 
   Future<Map<String, dynamic>?> connect({required String deviceAddress}) {
