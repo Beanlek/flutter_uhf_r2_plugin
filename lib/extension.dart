@@ -2,7 +2,7 @@ extension StringExtension on String {
   List<Map<String, dynamic>> cleanFromMyDevice() {
 
     RegExp deviceRegExp = RegExp(
-      r'MyDevice\(address=([A-F0-9:]+), name=([A-Za-z0-9_ ]+), bondState=(\d+), rssi=(-?\d+)\)');
+      r'MyDevice\(address=([A-F0-9:]+), name=(.*?), bondState=(\d+), rssi=(-?\d+)\)');
 
     List<Map<String, dynamic>> devicesList = deviceRegExp.allMatches(this).map((match) {
       return {
