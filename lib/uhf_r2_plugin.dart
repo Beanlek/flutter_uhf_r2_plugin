@@ -2,6 +2,9 @@
 import 'uhf_r2_plugin_platform_interface.dart';
 
 class UhfR2Plugin {
+  Stream<List<Map<String, dynamic>>?> streamTagThread() {
+    return UhfR2PluginPlatform.instance.streamTagThread();
+  }
   Future<String?> getPlatformVersion() {
     return UhfR2PluginPlatform.instance.getPlatformVersion();
   }
@@ -32,5 +35,8 @@ class UhfR2Plugin {
   }
   Future<List<Map<String, dynamic>>?> tagSingle() {
     return UhfR2PluginPlatform.instance.tagSingle();
+  }
+  Future<List<Map<String, dynamic>>?> tagThread() {
+    return UhfR2PluginPlatform.instance.tagThread();
   }
 }

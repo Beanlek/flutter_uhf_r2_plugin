@@ -11,6 +11,7 @@ import com.amastsales.uhf_r2_plugin.helpers.MyDevice
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.embedding.engine.plugins.activity.ActivityAware
 import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
+import io.flutter.plugin.common.EventChannel
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
@@ -23,14 +24,19 @@ import kotlinx.coroutines.async
 import java.util.ArrayList
 
 /** UhfR2Plugin */
-class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPermissionsResultListener {
+class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPermissionsResultListener, EventChannel.StreamHandler {
 
   private var connectedStatus : PublishSubject<Boolean> = PublishSubject.create()
   private var tagsStatus : PublishSubject<String> = PublishSubject.create()
 
   private lateinit var channel : MethodChannel
   private lateinit var context: Context
+
   private var activity: Activity? = null
+  private var eventSink:  EventChannel.EventSink? = null
+
+  var isScanning: Boolean = false
+  var isKeyDownUp: Boolean = false
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "uhf_r2_plugin")
@@ -50,6 +56,10 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
     }
 
     Uhfr2Helper().getInstance().setUhfListener(uhfR2Listener)
+
+    val eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "tagThreadEvent"); // timeHandlerEvent event name
+    eventChannel.setStreamHandler(this@UhfR2Plugin)
+
   }
 
   override fun onDetachedFromActivity() {
@@ -81,7 +91,14 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
 //      CHANNEL_StartContinuous -> result.success(UHFHelper.getInstance().start(false))
 //      CHANNEL_Stop -> result.success(UHFHelper.getInstance().stop())
 
-      CHANNEL_ClearData -> result.success(Uhfr2Helper().getInstance().clearData())
+      CHANNEL_ClearData -> {
+          try {
+              Uhfr2Helper().getInstance().clearData()
+              result.success(true)
+          } catch (error: Exception) {
+              result.error("CHANNEL_ClearData :: ", "Error: ", error)
+          }
+      }
 
       CHANNEL_TagSingle -> {
         try {
@@ -90,6 +107,16 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
           result.success(mutableTagList.toList().toString())
         } catch (error: Exception) {
           result.error("CHANNEL_TagSingle :: ", "Error: ", error)
+        }
+      }
+
+      CHANNEL_TagThread -> {
+        try {
+          val mutableTagList: MutableList<HashMap<String, String>> = Uhfr2Helper().getInstance().tagThread(this@UhfR2Plugin)
+
+          result.success(mutableTagList.toList().toString())
+        } catch (error: Exception) {
+          result.error("CHANNEL_TagThread :: ", "Error: ", error)
         }
       }
 
@@ -121,6 +148,10 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
               Uhfr2Helper().getInstance()
                 .connect(context, call.argument<String>("deviceAddress").toString())
             }.await()
+
+            Uhfr2Helper().getInstance().tagThread(this@UhfR2Plugin)
+//            val eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "tagThreadEvent"); // timeHandlerEvent event name
+//            eventChannel.setStreamHandler(this@UhfR2Plugin)
 
             result.success(response)
 
@@ -190,6 +221,27 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
     return grantResults[0] == PackageManager.PERMISSION_GRANTED
   }
 
+  // ** Event Channel **
+  override fun onListen(
+    arguments: Any?,
+    events: EventChannel.EventSink?
+  ) {
+    eventSink = events
+
+    try {
+      val mutableTagList: MutableList<HashMap<String, String>> = Uhfr2Helper().getInstance().tagThread(this@UhfR2Plugin)
+
+      eventSink?.success(mutableTagList.toList().toString())
+    } catch (error: Exception) {
+//      eventSink?.error("EVENT_TagThread :: ", "Error: ", error)
+      Log.d("tagThreadEvent", error.toString())
+    }
+  }
+
+  override fun onCancel(arguments: Any?) {
+
+  }
+
   companion object {
     private const val CHANNEL_GetPlatformVersion : String = "getPlatformVersion"
 
@@ -199,6 +251,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
     private const val CHANNEL_Disconnect : String = "disconnect"
 
     private const val CHANNEL_TagSingle : String = "tagSingle"
+    private const val CHANNEL_TagThread : String = "tagThread"
     private const val CHANNEL_ClearData : String = "clearData"
 
     // debugging purposes

@@ -10,6 +10,23 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('uhf_r2_plugin');
 
+  static const eventChannel = EventChannel('tagThreadEvent');
+  
+  @override
+  Stream<List<Map<String, dynamic>>?> streamTagThread() {
+
+    return eventChannel
+      .receiveBroadcastStream()
+      .map((event) {
+        
+        debugPrint("streamTagThread event: ${event.toString()}");
+        debugPrint("streamTagThread event MAP: ${event.toString().cleanFromTags().toString()}");
+
+        return event.toString().cleanFromTags();
+      });
+
+  }
+
   @override
   Future<String?> getPlatformVersion() async {
     final version = await methodChannel.invokeMethod<String>('getPlatformVersion');
@@ -112,8 +129,18 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
   Future<List<Map<String, dynamic>>?> tagSingle() async {
     final String result = await methodChannel.invokeMethod('tagSingle');
 
-      debugPrint("result in package: $result");
-      debugPrint("result in package: ${result.cleanFromTags().toString()}");
+      debugPrint("tagSingle result: $result");
+      debugPrint("tagSingle result MAP: ${result.cleanFromTags().toString()}");
+
+    return result.cleanFromTags();
+  }
+
+  @override
+  Future<List<Map<String, dynamic>>?> tagThread() async {
+    final String result = await methodChannel.invokeMethod('tagThread');
+
+      debugPrint("tagThread result: $result");
+      debugPrint("tagThread result MAP: ${result.cleanFromTags().toString()}");
 
     return result.cleanFromTags();
   }

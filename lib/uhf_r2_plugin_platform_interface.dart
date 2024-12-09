@@ -23,6 +23,10 @@ abstract class UhfR2PluginPlatform extends PlatformInterface {
     _instance = instance;
   }
 
+  Stream<List<Map<String, dynamic>>?> streamTagThread() {
+    throw UnimplementedError('streamTagThread() has not been implemented.');
+  }
+
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');
   }
@@ -53,5 +57,8 @@ abstract class UhfR2PluginPlatform extends PlatformInterface {
   }
   Future<List<Map<String, dynamic>>?> tagSingle() {
     throw UnimplementedError('tagSingle() has not been implemented.');
+  }
+  Future<List<Map<String, dynamic>>?> tagThread() {
+    throw UnimplementedError('tagThread() has not been implemented.');
   }
 }

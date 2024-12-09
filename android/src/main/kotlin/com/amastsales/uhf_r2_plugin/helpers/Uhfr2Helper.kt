@@ -22,12 +22,15 @@ import com.rscja.deviceapi.interfaces.ScanBTCallback;
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.core.content.ContextCompat.startActivity
+import com.amastsales.uhf_r2_plugin.UhfR2Plugin
 import com.amastsales.uhf_r2_plugin.helpers.CheckUtils
 import com.amastsales.uhf_r2_plugin.helpers.MyDevice
 import com.amastsales.uhf_r2_plugin.helpers.SPUtils
 import com.rscja.deviceapi.entity.UHFTAGInfo
 import com.rscja.deviceapi.interfaces.ConnectionStatus
 import com.rscja.deviceapi.interfaces.ConnectionStatusCallback
+import com.rscja.deviceapi.interfaces.IUHFInventoryCallback
+import com.rscja.deviceapi.interfaces.KeyEventCallback
 
 import java.util.Collections
 import kotlinx.coroutines.*
@@ -70,6 +73,7 @@ class Uhfr2Helper constructor() {
     lateinit var mInventoryPerMinuteTask: TimerTask
 
     private var isConnect = false
+    private var maxRunTime: Long = 99999999;
 
 //    private var tagList: HashMap<String, EPC> = HashMap()
     private var tagList: MutableList<HashMap<String, String>> = ArrayList()
@@ -253,6 +257,7 @@ class Uhfr2Helper constructor() {
             }
             if (connected) {
                 SPUtils(null, null, context).Inner().getInstance(context).setSPString(SPUtils.CURR_ADDRESS, deviceAddress);
+                mReader.setPower(5)
             }
 
             Log.d("getConnectStatus", connected.toString())
@@ -376,9 +381,97 @@ class Uhfr2Helper constructor() {
         tagMap.put(TAG_RSSI, info.getRssi()!!)
     }
 
-    fun tagSingle(): MutableList<HashMap<String, String>> {
-        var mStrTime: Long = System.currentTimeMillis()
+    private fun startThread(mContext: UhfR2Plugin)  {
+        if (mContext.isScanning) {
+            return;
+        }
 
+        initHandler()
+
+        val inventoryCallBack = object : IUHFInventoryCallback {
+            override fun callback(uhftagInfo: UHFTAGInfo) {
+                handler.sendMessage(handler.obtainMessage(FLAG_UHFINFO, uhftagInfo));
+                // Log.d("FLAG_UHFINFO", uhftagInfo.toString())
+            }
+        }
+
+        mReader.setInventoryCallback(inventoryCallBack)
+
+        mContext.isScanning = true;
+
+        var msg: Message = handler.obtainMessage(FLAG_START)
+        Log.i(TAG, "startInventoryTag() 1")
+
+        if (mReader.startInventoryTag()) {
+            msg.arg1 = FLAG_SUCCESS;
+            handler.sendEmptyMessage(FLAG_UPDATE_TIME);
+            handler.removeMessages(FLAG_TIME_OVER);
+            handler.sendEmptyMessageDelayed(FLAG_TIME_OVER, maxRunTime);
+        } else {
+            msg.arg1 = FLAG_FAIL;
+            mContext.isScanning = false;
+        }
+
+        handler.sendMessage(msg)
+
+    }
+
+    fun tagThread(mContext: UhfR2Plugin): MutableList<HashMap<String, String>>  {
+
+//        mReader.setKeyEventCallback(new KeyEventCallback() {
+        val keyEventCallback = object : KeyEventCallback  {
+
+            override fun onKeyDown(keycode: Int) {
+
+                Log.d(TAG, "keycode = $keycode")
+
+                if (mReader.getConnectStatus() == ConnectionStatus.CONNECTED) {
+                    if(keycode==3){
+                        mContext.isKeyDownUp=true
+                        startThread(mContext)
+                    } else{
+                        if(!mContext.isKeyDownUp){
+                            if(keycode==1) {
+                                if (mContext.isScanning) {
+                                    stop(mContext)
+                                } else {
+                                    startThread(mContext)
+                                }
+                            }
+                        }
+                        if(keycode==2) {
+                            if (mContext.isScanning) {
+                                stop(mContext)
+                                SystemClock.sleep(100)
+                            }
+                            //MR20
+                            inventory()
+                        }
+                    }
+
+                }
+            }
+
+            override fun onKeyUp(keycode: Int) {
+
+                Log.d(TAG, "keycode = $keycode")
+
+                if(keycode==4) {
+                    stop(mContext)
+                }
+            }
+        }
+
+        mReader.setKeyEventCallback(keyEventCallback)
+
+//        clearData()
+
+        // TODO return mutableList
+        return tagList;
+    }
+
+    private fun initHandler() {
+        var mStrTime: Long = System.currentTimeMillis()
         this.handler = object : Handler(Looper.getMainLooper()) {
             override fun handleMessage(msg: Message) {
                 when (msg.what) {
@@ -388,7 +481,7 @@ class Uhfr2Helper constructor() {
 //
                         Log.d("FLAG_TIME_OVER", (System.currentTimeMillis() - mStrTime).toString())
 
-                        stop()
+                        stop(null)
 
                     }
 
@@ -435,6 +528,11 @@ class Uhfr2Helper constructor() {
                 }
             }
         }
+    }
+
+    fun tagSingle(): MutableList<HashMap<String, String>> {
+
+        initHandler()
 
         try {
             var info: UHFTAGInfo  = mReader.inventorySingleTag()!!
@@ -458,7 +556,13 @@ class Uhfr2Helper constructor() {
         return tagList
     }
 
-    fun stop() {
+    fun stop(mContext: UhfR2Plugin?) {
+        if (mContext != null) {
+            if(mContext.isScanning) {
+                mReader.stopInventory()
+            }
+            mContext.isScanning = false;
+        }
         handler.removeMessages(FLAG_TIME_OVER);
         cancelInventoryTask();
     }
@@ -467,6 +571,16 @@ class Uhfr2Helper constructor() {
         if(this::mInventoryPerMinuteTask.isInitialized) {
             mInventoryPerMinuteTask.cancel();
         }
+    }
+
+    private fun inventory() {
+        var info: UHFTAGInfo = mReader.inventorySingleTag()
+        if (info != null) {
+            var msg: Message = handler.obtainMessage(FLAG_UHFINFO)
+            msg.obj = info
+            handler.sendMessage(msg)
+        }
+        handler.sendEmptyMessage(FLAG_UPDATE_TIME)
     }
 
     fun disconnect() {
