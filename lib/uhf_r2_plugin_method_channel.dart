@@ -10,12 +10,13 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
   @visibleForTesting
   final methodChannel = const MethodChannel('uhf_r2_plugin');
 
-  static const eventChannel = EventChannel('tagThreadEvent');
+  static const tagThreadEventChannel = EventChannel('tagThreadEvent');
+  static const isTaggingEventChannel = EventChannel('isTaggingEvent');
   
   @override
   Stream<List<Map<String, dynamic>>?> streamTagThread() {
 
-    return eventChannel
+    return tagThreadEventChannel
       .receiveBroadcastStream()
       .map((event) {
         
@@ -23,6 +24,17 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
         debugPrint("streamTagThread event MAP: ${event.toString().cleanFromTags().toString()}");
 
         return event.toString().cleanFromTags();
+      });
+
+  }
+
+  @override
+  Stream<bool?> streamIsTagging() {
+
+    return isTaggingEventChannel
+      .receiveBroadcastStream()
+      .map((event) {
+        return event;
       });
 
   }

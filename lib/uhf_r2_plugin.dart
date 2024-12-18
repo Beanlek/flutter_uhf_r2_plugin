@@ -5,6 +5,9 @@ class UhfR2Plugin {
   Stream<List<Map<String, dynamic>>?> streamTagThread() {
     return UhfR2PluginPlatform.instance.streamTagThread();
   }
+  Stream<bool?> streamIsTagging() {
+    return UhfR2PluginPlatform.instance.streamIsTagging();
+  }
   Future<String?> getPlatformVersion() {
     return UhfR2PluginPlatform.instance.getPlatformVersion();
   }

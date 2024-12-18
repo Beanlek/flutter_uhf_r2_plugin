@@ -59,6 +59,7 @@ class Uhfr2Helper constructor() {
     }
 
     private var deviceList: MutableList<MyDevice> = ArrayList()
+//    private var deviceExistCheck: HashMap<MyDevice, Boolean> = HashMap()
     private var tempDatas: MutableList<UHFTAGInfo> = ArrayList()
     private var devRssiValues: HashMap<String, Int> = HashMap()
 
@@ -73,21 +74,32 @@ class Uhfr2Helper constructor() {
     lateinit var mInventoryPerMinuteTask: TimerTask
 
     private var isConnect = false
+    private var isTagging = false
     private var maxRunTime: Long = 99999999;
 
 //    private var tagList: HashMap<String, EPC> = HashMap()
     private var tagList: MutableList<HashMap<String, String>> = ArrayList()
 
     private fun addDevice(device: MyDevice, rssi: Int): MutableList<MyDevice> {
+        Log.d("deviceList before", deviceList.toString())
         var deviceFound: Boolean = false;
 
         if(device.name == null || device.name.equals("")) {
             return deviceList
         }
 
+//        deviceExistCheck.replaceAll({ key, value -> false })
+//        for ((key, value) in deviceExistCheck.entries) {
+//            deviceExistCheck[key] = false
+//        }
+
+//        Log.d("deviceExistCheck false", deviceExistCheck.toString())
+
         for (listDev: MyDevice in deviceList) {
             if (listDev.address.equals(device.address)) {
                 deviceFound = true;
+                listDev.rssi = rssi
+//                deviceExistCheck[listDev] = true
                 break;
             }
         }
@@ -98,7 +110,16 @@ class Uhfr2Helper constructor() {
             Log.d("device.bondState", device.bondState.toString())
 
             deviceList.add(device);
+//            deviceExistCheck.put(deviceList.last(), true)
         }
+
+//        for (listDevCheck in deviceExistCheck) {
+//            if (!listDevCheck.value) {
+//                Log.d("device notExist", listDevCheck.key.toString())
+//                deviceList.remove(listDevCheck.key)
+//                break;
+//            }
+//        }
 
         val comparatorMyDevice = object : Comparator<MyDevice> {
             override fun compare(
@@ -124,6 +145,7 @@ class Uhfr2Helper constructor() {
 
         // Reorder based on signal strength
         Collections.sort(deviceList, comparatorMyDevice);
+        Log.d("deviceList after", deviceList.toString())
 
         return deviceList
     }
@@ -161,6 +183,9 @@ class Uhfr2Helper constructor() {
     @OptIn(DelicateCoroutinesApi::class)
     suspend fun startScan(context: Context, activity: Activity): MutableList<MyDevice> {
         init(context)
+
+//        deviceExistCheck.clear()
+        deviceList.clear()
 
         fun mReaderStarScanning(scanBTCallback: ScanBTCallback): Deferred<Boolean> = GlobalScope.async(){
             mReader.startScanBTDevices(scanBTCallback)
@@ -391,7 +416,7 @@ class Uhfr2Helper constructor() {
         val inventoryCallBack = object : IUHFInventoryCallback {
             override fun callback(uhftagInfo: UHFTAGInfo) {
                 handler.sendMessage(handler.obtainMessage(FLAG_UHFINFO, uhftagInfo));
-                // Log.d("FLAG_UHFINFO", uhftagInfo.toString())
+                Log.d("FLAG_UHFINFO", uhftagInfo.toString())
             }
         }
 
@@ -428,19 +453,23 @@ class Uhfr2Helper constructor() {
                 if (mReader.getConnectStatus() == ConnectionStatus.CONNECTED) {
                     if(keycode==3){
                         mContext.isKeyDownUp=true
+                        isTagging = true
                         startThread(mContext)
                     } else{
                         if(!mContext.isKeyDownUp){
                             if(keycode==1) {
                                 if (mContext.isScanning) {
+                                    isTagging = false
                                     stop(mContext)
                                 } else {
+                                    isTagging = true
                                     startThread(mContext)
                                 }
                             }
                         }
                         if(keycode==2) {
                             if (mContext.isScanning) {
+                                isTagging = false
                                 stop(mContext)
                                 SystemClock.sleep(100)
                             }
@@ -457,6 +486,7 @@ class Uhfr2Helper constructor() {
                 Log.d(TAG, "keycode = $keycode")
 
                 if(keycode==4) {
+                    isTagging = false
                     stop(mContext)
                 }
             }
@@ -468,6 +498,11 @@ class Uhfr2Helper constructor() {
 
         // TODO return mutableList
         return tagList;
+    }
+
+    fun isTaggingThread(): Boolean  {
+        Log.d("isTagging", isTagging.toString())
+        return isTagging
     }
 
     private fun initHandler() {

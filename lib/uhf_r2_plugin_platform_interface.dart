@@ -26,6 +26,10 @@ abstract class UhfR2PluginPlatform extends PlatformInterface {
   Stream<List<Map<String, dynamic>>?> streamTagThread() {
     throw UnimplementedError('streamTagThread() has not been implemented.');
   }
+  
+  Stream<bool?> streamIsTagging() {
+    throw UnimplementedError('streamIsTagging() has not been implemented.');
+  }
 
   Future<String?> getPlatformVersion() {
     throw UnimplementedError('platformVersion() has not been implemented.');

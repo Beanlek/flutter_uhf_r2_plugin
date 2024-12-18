@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.util.Log
+import com.amastsales.uhf_r2_plugin.UhfR2Plugin
 import com.amastsales.uhf_r2_plugin.helper.UhfR2Listener
 import com.amastsales.uhf_r2_plugin.helper.Uhfr2Helper
 import com.amastsales.uhf_r2_plugin.helpers.MyDevice
@@ -24,7 +25,8 @@ import kotlinx.coroutines.async
 import java.util.ArrayList
 
 /** UhfR2Plugin */
-class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPermissionsResultListener, EventChannel.StreamHandler {
+//class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPermissionsResultListener, EventChannel.StreamHandler {
+class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPermissionsResultListener {
 
   private var connectedStatus : PublishSubject<Boolean> = PublishSubject.create()
   private var tagsStatus : PublishSubject<String> = PublishSubject.create()
@@ -57,8 +59,11 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
 
     Uhfr2Helper().getInstance().setUhfListener(uhfR2Listener)
 
-    val eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "tagThreadEvent"); // timeHandlerEvent event name
-    eventChannel.setStreamHandler(this@UhfR2Plugin)
+    val tagThreadEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, CHANNEL_TagThreadEvent)
+    tagThreadEventChannel.setStreamHandler(EventChannelHandler(this, CHANNEL_TagThreadEvent))
+
+    val isTaggingEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, CHANNEL_IsTaggingEvent)
+    isTaggingEventChannel.setStreamHandler(EventChannelHandler(this, CHANNEL_IsTaggingEvent))
 
   }
 
@@ -150,8 +155,8 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
             }.await()
 
             Uhfr2Helper().getInstance().tagThread(this@UhfR2Plugin)
-//            val eventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "tagThreadEvent"); // timeHandlerEvent event name
-//            eventChannel.setStreamHandler(this@UhfR2Plugin)
+//            val tagThreadEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "tagThreadEvent"); // timeHandlerEvent event name
+//            tagThreadEventChannel.setStreamHandler(this@UhfR2Plugin)
 
             result.success(response)
 
@@ -221,25 +226,45 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
     return grantResults[0] == PackageManager.PERMISSION_GRANTED
   }
 
-  // ** Event Channel **
-  override fun onListen(
-    arguments: Any?,
-    events: EventChannel.EventSink?
-  ) {
-    eventSink = events
-
-    try {
-      val mutableTagList: MutableList<HashMap<String, String>> = Uhfr2Helper().getInstance().tagThread(this@UhfR2Plugin)
-
-      eventSink?.success(mutableTagList.toList().toString())
-    } catch (error: Exception) {
-//      eventSink?.error("EVENT_TagThread :: ", "Error: ", error)
-      Log.d("tagThreadEvent", error.toString())
-    }
+  fun getContext() : UhfR2Plugin{
+    return this
   }
 
-  override fun onCancel(arguments: Any?) {
+  // ** Event Channel Handler**
+  class EventChannelHandler(private var context: UhfR2Plugin, private var eventChannel: String) : EventChannel.StreamHandler{
 
+    private var eventSink: EventChannel.EventSink? = null
+
+    override fun onListen(
+      arguments: Any?,
+      events: EventChannel.EventSink?
+    ) {
+      eventSink = events
+
+      try {
+        when (eventChannel) {
+          CHANNEL_TagThreadEvent -> {
+            val mutableTagList: MutableList<HashMap<String, String>> = Uhfr2Helper().getInstance().tagThread(context)
+
+            eventSink?.success(mutableTagList.toList().toString())
+          }
+
+          CHANNEL_IsTaggingEvent -> {
+            val isTaggingResponse: Boolean = Uhfr2Helper().getInstance().isTaggingThread()
+
+            eventSink?.success(isTaggingResponse)
+          }
+        }
+
+      } catch (error: Exception) {
+//      eventSink?.error("EVENT_TagThread :: ", "Error: ", error)
+        Log.d(eventChannel, error.toString())
+      }
+    }
+
+    override fun onCancel(arguments: Any?) {
+
+    }
   }
 
   companion object {
@@ -258,5 +283,9 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
     private const val CHANNEL_TestConnect : String = "testConnect"
     private const val CHANNEL_GetConnectionStatus : String = "getConnectionStatus"
     private const val CHANNEL_IsConnected : String = "isConnected"
+
+    // event Channel
+    private const val CHANNEL_TagThreadEvent : String = "tagThreadEvent"
+    private const val CHANNEL_IsTaggingEvent : String = "isTaggingEvent"
   }
 }
