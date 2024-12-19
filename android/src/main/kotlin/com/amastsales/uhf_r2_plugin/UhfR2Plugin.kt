@@ -263,7 +263,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
     }
 
     override fun onCancel(arguments: Any?) {
-
+      eventSink = null
     }
   }
 
