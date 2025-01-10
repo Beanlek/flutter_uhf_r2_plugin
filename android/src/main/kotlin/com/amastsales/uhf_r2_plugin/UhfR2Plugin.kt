@@ -28,6 +28,10 @@ import java.util.ArrayList
 //class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPermissionsResultListener, EventChannel.StreamHandler {
 class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPermissionsResultListener {
 
+  // scanModes
+  val MODE_AUTO : String = "auto"
+  val MODE_SINGLE : String = "single"
+
   private var connectedStatus : PublishSubject<Boolean> = PublishSubject.create()
   private var tagsStatus : PublishSubject<String> = PublishSubject.create()
 
@@ -39,6 +43,8 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
 
   var isScanning: Boolean = false
   var isKeyDownUp: Boolean = false
+
+  var currentScanMode: String = MODE_AUTO
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "uhf_r2_plugin")
@@ -90,6 +96,22 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
   private fun handleMethods(call: MethodCall, result: Result) = GlobalScope.async {
     when (call.method) {
       CHANNEL_GetPlatformVersion -> result.success("Android " + Build.VERSION.RELEASE)
+
+      CHANNEL_SetScanMode -> {
+        val scanMode: String = call.argument<String>("scanMode").toString()
+        Log.d("String ScanMode", scanMode)
+
+        if (scanMode != MODE_SINGLE && scanMode != MODE_AUTO) {
+          result.success(false)
+        }
+
+        try {
+          Uhfr2Helper().getInstance().setScanMode(this@UhfR2Plugin, scanMode)
+          result.success(true)
+        } catch (error: Exception) {
+          result.error("CHANNEL_SetScanMode :: ", "Error: ", error)
+        }
+      }
 
 //      CHANNEL_IsStarted -> result.success(UHFHelper.getInstance().isStarted())
 //      CHANNEL_StartSingle -> result.success(UHFHelper.getInstance().start(true))
@@ -263,12 +285,14 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
     }
 
     override fun onCancel(arguments: Any?) {
-      eventSink = null
+
     }
   }
 
   companion object {
     private const val CHANNEL_GetPlatformVersion : String = "getPlatformVersion"
+
+    private const val CHANNEL_SetScanMode : String = "setScanMode"
 
     private const val CHANNEL_StartScan : String = "startScan"
     private const val CHANNEL_StopScan : String = "stopScan"

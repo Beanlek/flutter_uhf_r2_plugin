@@ -451,33 +451,44 @@ class Uhfr2Helper constructor() {
                 Log.d(TAG, "keycode = $keycode")
 
                 if (mReader.getConnectStatus() == ConnectionStatus.CONNECTED) {
-                    if(keycode==3){
-                        mContext.isKeyDownUp=true
-                        isTagging = true
-                        startThread(mContext)
-                    } else{
-                        if(!mContext.isKeyDownUp){
-                            if(keycode==1) {
-                                if (mContext.isScanning) {
-                                    isTagging = false
-                                    stop(mContext)
-                                } else {
-                                    isTagging = true
-                                    startThread(mContext)
+                    when (mContext.currentScanMode) {
+                        mContext.MODE_AUTO -> {
+                            if(keycode==3){
+                                mContext.isKeyDownUp=true
+                                isTagging = true
+                                startThread(mContext)
+                            } else{
+                                if(!mContext.isKeyDownUp){
+                                    if(keycode==1) {
+                                        if (mContext.isScanning) {
+                                            isTagging = false
+                                            stop(mContext)
+                                        } else {
+                                            isTagging = true
+                                            startThread(mContext)
+                                        }
+                                    }
+                                }
+                                if(keycode==2) {
+                                    if (mContext.isScanning) {
+                                        isTagging = false
+                                        stop(mContext)
+                                        SystemClock.sleep(100)
+                                    }
+                                    //MR20
+                                    inventory()
                                 }
                             }
+
                         }
-                        if(keycode==2) {
-                            if (mContext.isScanning) {
-                                isTagging = false
-                                stop(mContext)
-                                SystemClock.sleep(100)
+
+                        mContext.MODE_SINGLE -> {
+                            if(keycode==1) {
+                                clearData()
+                                tagSingle()
                             }
-                            //MR20
-                            inventory()
                         }
                     }
-
                 }
             }
 
@@ -616,6 +627,10 @@ class Uhfr2Helper constructor() {
             handler.sendMessage(msg)
         }
         handler.sendEmptyMessage(FLAG_UPDATE_TIME)
+    }
+
+    fun setScanMode(mContext: UhfR2Plugin, scanMode: String) {
+        mContext.currentScanMode = scanMode
     }
 
     fun disconnect() {

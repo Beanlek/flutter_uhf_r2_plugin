@@ -88,6 +88,16 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
   Future<void> clearData() async {
     await methodChannel.invokeMethod('clearData');
   }
+  @override
+  Future<bool?> setScanMode({required String scanMode}) async {
+    final response = await methodChannel.invokeMethod('setScanMode',
+      {
+        "scanMode": scanMode
+      }
+    );
+
+    return response;
+  }
 
   
 
