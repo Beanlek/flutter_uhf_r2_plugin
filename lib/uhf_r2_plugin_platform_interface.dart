@@ -55,8 +55,12 @@ abstract class UhfR2PluginPlatform extends PlatformInterface {
   Future<void> clearData() {
     throw UnimplementedError('clearData() has not been implemented.');
   }
+
   Future<bool?> setScanMode({required String scanMode}) {
     throw UnimplementedError('setScanMode() has not been implemented.');
+  }
+  Future<bool?> setScanPower({required int scanPower}) {
+    throw UnimplementedError('setScanPower() has not been implemented.');
   }
 
   Future<Map<String, dynamic>?> connect({required String deviceAddress}) {

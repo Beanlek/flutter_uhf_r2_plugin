@@ -32,6 +32,11 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
   val MODE_AUTO : String = "auto"
   val MODE_SINGLE : String = "single"
 
+  val POWER_LOW : Int = 5
+  val POWER_MED : Int = 10
+  val POWER_HI : Int = 20
+  val POWER_MAX : Int = 30
+
   private var connectedStatus : PublishSubject<Boolean> = PublishSubject.create()
   private var tagsStatus : PublishSubject<String> = PublishSubject.create()
 
@@ -45,6 +50,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
   var isKeyDownUp: Boolean = false
 
   var currentScanMode: String = MODE_AUTO
+  var currentScanPower: Int = POWER_LOW
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "uhf_r2_plugin")
@@ -101,7 +107,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
         val scanMode: String = call.argument<String>("scanMode").toString()
         Log.d("String ScanMode", scanMode)
 
-        if (scanMode != MODE_SINGLE && scanMode != MODE_AUTO) {
+        if (scanMode != MODE_SINGLE || scanMode != MODE_AUTO) {
           result.success(false)
         }
 
@@ -110,6 +116,22 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
           result.success(true)
         } catch (error: Exception) {
           result.error("CHANNEL_SetScanMode :: ", "Error: ", error)
+        }
+      }
+
+      CHANNEL_SetScanPower -> {
+        val scanPower: Int = call.argument<Int>("scanPower")!!
+        Log.d("Int ScanPower", scanPower.toString())
+
+        if (scanPower < POWER_LOW || scanPower > POWER_MAX) {
+          result.success(false)
+        }
+
+        try {
+          Uhfr2Helper().getInstance().setScanPower(this@UhfR2Plugin, scanPower)
+          result.success(true)
+        } catch (error: Exception) {
+          result.error("CHANNEL_SetScanPower :: ", "Error: ", error)
         }
       }
 
@@ -173,7 +195,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
             val response: Int = async()
             {
               Uhfr2Helper().getInstance()
-                .connect(context, call.argument<String>("deviceAddress").toString())
+                .connect(context, this@UhfR2Plugin, call.argument<String>("deviceAddress").toString())
             }.await()
 
             Uhfr2Helper().getInstance().tagThread(this@UhfR2Plugin)
@@ -293,6 +315,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
     private const val CHANNEL_GetPlatformVersion : String = "getPlatformVersion"
 
     private const val CHANNEL_SetScanMode : String = "setScanMode"
+    private const val CHANNEL_SetScanPower : String = "setScanPower"
 
     private const val CHANNEL_StartScan : String = "startScan"
     private const val CHANNEL_StopScan : String = "stopScan"

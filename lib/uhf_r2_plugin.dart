@@ -32,8 +32,12 @@ class UhfR2Plugin {
   Future<void> clearData() {
     return UhfR2PluginPlatform.instance.clearData();
   }
+
   Future<bool?> setScanMode({required String scanMode}) {
     return UhfR2PluginPlatform.instance.setScanMode(scanMode: scanMode);
+  }
+  Future<bool?> setScanPower({required int scanPower}) {
+    return UhfR2PluginPlatform.instance.setScanPower(scanPower: scanPower);
   }
   
   Future<Map<String, dynamic>?> connect({required String deviceAddress}) {

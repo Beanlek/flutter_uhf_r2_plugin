@@ -261,7 +261,7 @@ class Uhfr2Helper constructor() {
     }
 
     @OptIn(DelicateCoroutinesApi::class)
-    suspend fun connect(context: Context, deviceAddress: String): Int {
+    suspend fun connect(context: Context, mContext: UhfR2Plugin, deviceAddress: String): Int {
         init(context)
 
         fun mReaderConnect(deviceAddress: String, btStatus: ConnectionStatusCallback<Any>?): Deferred<Boolean> = GlobalScope.async() {
@@ -282,7 +282,7 @@ class Uhfr2Helper constructor() {
             }
             if (connected) {
                 SPUtils(null, null, context).Inner().getInstance(context).setSPString(SPUtils.CURR_ADDRESS, deviceAddress);
-                mReader.setPower(5)
+                mReader.setPower(mContext.POWER_MAX)
             }
 
             Log.d("getConnectStatus", connected.toString())
@@ -489,6 +489,21 @@ class Uhfr2Helper constructor() {
                             }
                         }
                     }
+
+                    when (mContext.currentScanPower) {
+                        mContext.POWER_LOW -> {
+                            mReader.setPower(mContext.POWER_LOW)
+                        }
+                        mContext.POWER_MED -> {
+                            mReader.setPower(mContext.POWER_MED)
+                        }
+                        mContext.POWER_HI -> {
+                            mReader.setPower(mContext.POWER_HI)
+                        }
+                        mContext.POWER_MAX -> {
+                            mReader.setPower(mContext.POWER_MAX)
+                        }
+                    }
                 }
             }
 
@@ -631,6 +646,10 @@ class Uhfr2Helper constructor() {
 
     fun setScanMode(mContext: UhfR2Plugin, scanMode: String) {
         mContext.currentScanMode = scanMode
+    }
+
+    fun setScanPower(mContext: UhfR2Plugin, scanPower: Int) {
+        mContext.currentScanPower = scanPower
     }
 
     fun disconnect() {
