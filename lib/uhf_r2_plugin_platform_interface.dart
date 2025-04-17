@@ -63,7 +63,7 @@ abstract class UhfR2PluginPlatform extends PlatformInterface {
     throw UnimplementedError('setScanPower() has not been implemented.');
   }
 
-  Future<Map<String, dynamic>?> connect({required String deviceAddress}) {
+  Future<Map<String, dynamic>?> connect({required String deviceAddress, required String deviceName}) {
     throw UnimplementedError('connect() has not been implemented.');
   }
   Future<List<Map<String, dynamic>>?> tagSingle() {

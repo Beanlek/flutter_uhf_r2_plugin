@@ -273,6 +273,8 @@ class Uhfr2Helper constructor() {
 
             var connected: Boolean = false
 
+            Log.d("getConnectStatus", mReader.getConnectStatus().toString())
+
             while (true) {
                 if (mReader.getConnectStatus() != ConnectionStatus.CONNECTING) {
                     delay(2000)

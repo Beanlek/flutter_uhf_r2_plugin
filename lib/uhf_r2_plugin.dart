@@ -40,8 +40,8 @@ class UhfR2Plugin {
     return UhfR2PluginPlatform.instance.setScanPower(scanPower: scanPower);
   }
   
-  Future<Map<String, dynamic>?> connect({required String deviceAddress}) {
-    return UhfR2PluginPlatform.instance.connect(deviceAddress: deviceAddress);
+  Future<Map<String, dynamic>?> connect({required String deviceAddress, required String deviceName}) {
+    return UhfR2PluginPlatform.instance.connect(deviceAddress: deviceAddress, deviceName: deviceName);
   }
   Future<List<Map<String, dynamic>>?> tagSingle() {
     return UhfR2PluginPlatform.instance.tagSingle();

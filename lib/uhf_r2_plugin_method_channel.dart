@@ -113,7 +113,7 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
   
 
   @override
-  Future<Map<String, dynamic>?> connect({required String deviceAddress}) async {
+  Future<Map<String, dynamic>?> connect({required String deviceAddress, required String deviceName}) async {
     Map<String, dynamic> result = {};
 
     final response = await methodChannel.invokeMethod('connect',
@@ -127,7 +127,7 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
         case 1:
           result = {
             "connect": true,
-            "message": "Connected to $deviceAddress"
+            "message": "Connected to $deviceName"
           };
           break;
         case 2:
@@ -139,7 +139,7 @@ class MethodChannelUhfR2Plugin extends UhfR2PluginPlatform {
         case 3:
           result = {
             "connect": false,
-            "message": "Disconnected from $deviceAddress"
+            "message": "Disconnected from $deviceName"
           };
           break;
         default:
