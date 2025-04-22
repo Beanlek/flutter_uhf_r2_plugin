@@ -199,6 +199,7 @@ class UhfR2Plugin: FlutterPlugin, MethodCallHandler, ActivityAware,  RequestPerm
             }.await()
 
             Uhfr2Helper().getInstance().tagThread(this@UhfR2Plugin)
+            Uhfr2Helper().getInstance().clearData()
 //            val tagThreadEventChannel = EventChannel(flutterPluginBinding.binaryMessenger, "tagThreadEvent"); // timeHandlerEvent event name
 //            tagThreadEventChannel.setStreamHandler(this@UhfR2Plugin)
 
